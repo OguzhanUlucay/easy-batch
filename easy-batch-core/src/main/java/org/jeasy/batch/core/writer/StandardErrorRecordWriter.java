@@ -27,11 +27,12 @@ import org.jeasy.batch.core.record.Batch;
 import org.jeasy.batch.core.record.Record;
 
 /**
- * Record writer that writes the <strong>payload</strong> of a {@link Record} to the standard error.
+ * Record writer that writes the <strong>payload</strong> of a {@link Record} to
+ * the standard error by calling its <code>toString</code> method.
  *
  * @author Mahmoud Ben Hassine (mahmoud.benhassine@icloud.com)
  */
-public class StandardErrorRecordWriter implements RecordWriter {
+public class StandardErrorRecordWriter<P> implements RecordWriter<P> {
 
     @Override
     public void open() {
@@ -39,8 +40,8 @@ public class StandardErrorRecordWriter implements RecordWriter {
     }
 
     @Override
-    public void writeRecords(Batch batch) {
-        for (Record record : batch) {
+    public void writeRecords(Batch<P> batch) {
+        for (Record<P> record : batch) {
             System.err.println(record.getPayload().toString());
         }
     }

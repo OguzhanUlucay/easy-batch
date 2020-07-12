@@ -35,18 +35,18 @@ import java.util.concurrent.BlockingQueue;
  *
  * @author Mahmoud Ben Hassine (mahmoud.benhassine@icloud.com)
  */
-public class RoundRobinBlockingQueueRecordWriter implements RecordWriter {
+public class RoundRobinBlockingQueueRecordWriter<P> implements RecordWriter<P> {
 
     private int queuesNumber;
     private int nextQueue;
-    private List<BlockingQueue<Record>> queues;
+    private List<BlockingQueue<Record<P>>> queues;
 
     /**
      * Create a new {@link RoundRobinBlockingQueueRecordWriter}.
      *
      * @param queues to which records should be written
      */
-    public RoundRobinBlockingQueueRecordWriter(List<BlockingQueue<Record>> queues) {
+    public RoundRobinBlockingQueueRecordWriter(List<BlockingQueue<Record<P>>> queues) {
         this.queues = queues;
         this.queuesNumber = queues.size();
     }
@@ -57,10 +57,10 @@ public class RoundRobinBlockingQueueRecordWriter implements RecordWriter {
     }
 
     @Override
-    public void writeRecords(Batch batch) throws Exception {
+    public void writeRecords(Batch<P> batch) throws Exception {
         //write records to queues in round-robin fashion
-        for (Record record : batch) {
-            BlockingQueue<Record> queue = queues.get(nextQueue++ % queuesNumber);
+        for (Record<P> record : batch) {
+            BlockingQueue<Record<P>> queue = queues.get(nextQueue++ % queuesNumber);
             queue.put(record);
         }
     }
