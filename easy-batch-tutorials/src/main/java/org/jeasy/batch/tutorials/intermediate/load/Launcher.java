@@ -26,6 +26,7 @@ package org.jeasy.batch.tutorials.intermediate.load;
 
 import org.jeasy.batch.core.filter.HeaderRecordFilter;
 import org.jeasy.batch.core.job.Job;
+import org.jeasy.batch.core.job.JobBuilder;
 import org.jeasy.batch.core.job.JobExecutor;
 import org.jeasy.batch.core.job.JobReport;
 import org.jeasy.batch.flatfile.DelimitedRecordMapper;
@@ -39,8 +40,6 @@ import org.jeasy.batch.validation.BeanValidationRecordValidator;
 import javax.sql.DataSource;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-
-import static org.jeasy.batch.core.job.JobBuilder.aNewJob;
 
 /**
  * Main class to run the JDBC data import tutorial.
@@ -65,13 +64,13 @@ public class Launcher {
         String[] fields = {"id", "user", "message"};
 
         // Build a batch job
-        Job job = aNewJob()
+        Job job = new JobBuilder<String, Tweet>()
                 .batchSize(2)
                 .reader(new FlatFileRecordReader(tweets))
-                .filter(new HeaderRecordFilter())
+                .filter(new HeaderRecordFilter<>())
                 .mapper(new DelimitedRecordMapper<>(Tweet.class, fields))
-                .validator(new BeanValidationRecordValidator())
-                .writer(new JdbcRecordWriter(dataSource, query, new BeanPropertiesPreparedStatementProvider(Tweet.class, fields)))
+                .validator(new BeanValidationRecordValidator<>())
+                .writer(new JdbcRecordWriter<>(dataSource, query, new BeanPropertiesPreparedStatementProvider(Tweet.class, fields)))
                 .build();
         
         // Execute the job

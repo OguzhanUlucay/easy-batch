@@ -26,19 +26,20 @@ package org.jeasy.batch.tutorials.advanced.cbrd;
 
 import org.jeasy.batch.core.filter.FileExtensionFilter;
 import org.jeasy.batch.core.job.Job;
+import org.jeasy.batch.core.job.JobBuilder;
 import org.jeasy.batch.core.job.JobExecutor;
 import org.jeasy.batch.core.reader.BlockingQueueRecordReader;
 import org.jeasy.batch.core.reader.FileRecordReader;
 import org.jeasy.batch.core.record.Record;
 import org.jeasy.batch.extensions.integration.ContentBasedBlockingQueueRecordWriter;
+import org.jeasy.batch.extensions.integration.Predicate;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
-
-import static org.jeasy.batch.core.job.JobBuilder.aNewJob;
-import static org.jeasy.batch.extensions.integration.ContentBasedBlockingQueueRecordWriterBuilder.newContentBasedBlockingQueueRecordWriterBuilder;
 
 /**
 * Main class to run the content based record dispatching tutorial.
@@ -56,17 +57,18 @@ public class Launcher {
         Path directory = Paths.get(path);
 
         // Create work queues
-        BlockingQueue<Record> csvQueue = new LinkedBlockingQueue<>();
-        BlockingQueue<Record> xmlQueue = new LinkedBlockingQueue<>();
+        BlockingQueue<Record<Path>> csvQueue = new LinkedBlockingQueue<>();
+        BlockingQueue<Record<Path>> xmlQueue = new LinkedBlockingQueue<>();
 
+        Map<Predicate<Path>, BlockingQueue<Record<Path>>> queueMap = new HashMap<>();
+        queueMap.put(new CsvFilePredicate(), csvQueue);
+        queueMap.put(new XmlFilePredicate(), xmlQueue);
         // Create a content based record writer to write records to work queues based on their content
-        ContentBasedBlockingQueueRecordWriter contentBasedBlockingQueueRecordWriter = newContentBasedBlockingQueueRecordWriterBuilder()
-                .when(new CsvFilePredicate()).writeTo(csvQueue)
-                .when(new XmlFilePredicate()).writeTo(xmlQueue)
-                .build();
+        ContentBasedBlockingQueueRecordWriter<Path> contentBasedBlockingQueueRecordWriter =
+                new ContentBasedBlockingQueueRecordWriter<>(queueMap);
 
         // Build a master job that will read files from the directory and dispatch them to worker jobs
-        Job masterJob = aNewJob()
+        Job masterJob = new JobBuilder<Path, Path>()
                 .named("master-job")
                 .reader(new FileRecordReader(directory))
                 .filter(new FileExtensionFilter(".log", ".tmp"))
@@ -74,8 +76,8 @@ public class Launcher {
                 .build();
 
         // Build jobs
-        Job workerJob1 = buildWorkerJob(csvQueue, "csv-worker-job");
-        Job workerJob2 = buildWorkerJob(xmlQueue, "xml-worker-job");
+        Job workerJob1 = buildWorkerJob("csv-worker-job", csvQueue);
+        Job workerJob2 = buildWorkerJob("xml-worker-job", xmlQueue);
 
         // Create a Job executor with 3 worker threads
         JobExecutor jobExecutor = new JobExecutor(THREAD_POOL_SIZE);
@@ -88,10 +90,10 @@ public class Launcher {
 
     }
 
-    private static Job buildWorkerJob(BlockingQueue<Record> workQueue, String jobName) {
-        return aNewJob()
+    private static Job buildWorkerJob(String jobName, BlockingQueue<Record<Path>> workQueue) {
+        return new JobBuilder<Path, Path>()
                 .named(jobName)
-                .reader(new BlockingQueueRecordReader(workQueue, QUEUE_TIMEOUT))
+                .reader(new BlockingQueueRecordReader<>(workQueue, QUEUE_TIMEOUT))
                 .processor(new DummyFileProcessor())
                 .build();
     }

@@ -25,12 +25,12 @@
 package org.jeasy.batch.tutorials.basic.wordcount;
 
 import org.jeasy.batch.core.job.Job;
+import org.jeasy.batch.core.job.JobBuilder;
 import org.jeasy.batch.core.job.JobExecutor;
 import org.jeasy.batch.core.reader.StringRecordReader;
 
+import java.util.List;
 import java.util.Map;
-
-import static org.jeasy.batch.core.job.JobBuilder.aNewJob;
 
 /**
 * Main class to run the word count tutorial.
@@ -48,7 +48,7 @@ public class Launcher {
 
         // Build a batch job
         WordCounter wordCounter = new WordCounter();
-        Job job = aNewJob()
+        Job job = new JobBuilder<String, List<String>>()
                 .reader(new StringRecordReader(dataSource))
                 .mapper(new LineTokenizer())
                 .processor(wordCounter)

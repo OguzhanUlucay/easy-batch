@@ -74,11 +74,11 @@ public class PhysicalPartitions {
     }
 
     private static Job buildJob(Path file, String jobName) {
-        return JobBuilder.aNewJob()
+        return new JobBuilder<String, Tweet>()
                 .named(jobName)
                 .reader(new FlatFileRecordReader(file))
                 .mapper(new DelimitedRecordMapper<>(Tweet.class, "id", "user", "message"))
-                .writer(new StandardOutputRecordWriter())
+                .writer(new StandardOutputRecordWriter<>())
                 .build();
     }
 

@@ -26,6 +26,7 @@ package org.jeasy.batch.tutorials.advanced.parallel;
 
 import org.jeasy.batch.core.filter.HeaderRecordFilter;
 import org.jeasy.batch.core.job.Job;
+import org.jeasy.batch.core.job.JobBuilder;
 import org.jeasy.batch.core.job.JobExecutor;
 import org.jeasy.batch.core.reader.BlockingQueueRecordReader;
 import org.jeasy.batch.core.record.Record;
@@ -53,15 +54,15 @@ public class WorkQueue {
         Path tweets = Paths.get(args.length != 0 ? args[0] : "easy-batch-tutorials/src/main/resources/data/tweets.csv");
 
         // Create queues
-        BlockingQueue<Record> workQueue = new LinkedBlockingQueue<>();
+        BlockingQueue<Record<Tweet>> workQueue = new LinkedBlockingQueue<>();
 
         // Build a master job to read records from the data source and dispatch them to worker jobs
-        Job masterJob = aNewJob()
+        Job masterJob = new JobBuilder<String, Tweet>()
                 .named("master-job")
                 .reader(new FlatFileRecordReader(tweets))
-                .filter(new HeaderRecordFilter())
+                .filter(new HeaderRecordFilter<>())
                 .mapper(new DelimitedRecordMapper<>(Tweet.class, "id", "user", "message"))
-                .writer(new BlockingQueueRecordWriter(workQueue, QUEUE_TIMEOUT))
+                .writer(new BlockingQueueRecordWriter<>(workQueue, QUEUE_TIMEOUT))
                 .build();
 
         // Build worker jobs
@@ -78,11 +79,11 @@ public class WorkQueue {
         jobExecutor.shutdown();
     }
 
-    private static Job buildWorkerJob(BlockingQueue<Record> workQueue, String jobName) {
-        return aNewJob()
+    private static Job buildWorkerJob(BlockingQueue<Record<Tweet>> workQueue, String jobName) {
+        return new JobBuilder<Tweet, Tweet>()
                 .named(jobName)
-                .reader(new BlockingQueueRecordReader(workQueue, QUEUE_TIMEOUT))
-                .writer(new StandardOutputRecordWriter())
+                .reader(new BlockingQueueRecordReader<>(workQueue, QUEUE_TIMEOUT))
+                .writer(new StandardOutputRecordWriter<>())
                 .build();
     }
 
